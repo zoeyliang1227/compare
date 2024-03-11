@@ -24,7 +24,6 @@ def main():
     
     get_name()
     
-    print(testlink)
     
     
     end = time.time()
