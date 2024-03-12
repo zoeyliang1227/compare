@@ -53,7 +53,7 @@ def main():
     # vodafone.find_from_vodafone()
     get_name()
     get_from_testlink()
-    # mapping()
+    mapping()
     
     end = time.time()
     print('Time elapsed: ' + str(start-end) + ' seconds')
