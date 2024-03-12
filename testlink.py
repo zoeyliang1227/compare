@@ -15,7 +15,7 @@ timeout = 20
 
 def get_driver():
     options = webdriver.ChromeOptions()
-    # options.add_argument('--headless')                 # 瀏覽器不提供可視化頁面
+    options.add_argument('--headless')                 # 瀏覽器不提供可視化頁面
     options.add_argument('-no-sandbox')               # 以最高權限運行
     options.add_argument('--start-maximized')        # 縮放縮放（全屏窗口）設置元素比較準確
     options.add_argument('--disable-gpu')            # 谷歌文檔說明需要加上這個屬性來規避bug
@@ -75,13 +75,14 @@ def find_from_testlink(Document_ID):
             ID = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, f'ext-gen{x}')))
             ActionChains(driver).double_click(ID).perform()
             x+=2
+            # print((Document_ID.strip()), ID.text)
             if (Document_ID.strip()) in ID.text:
-                print(Document_ID.strip())
                 driver.switch_to.parent_frame()
                 driver.switch_to.frame('workframe')
-                print(check_text(driver))
                 if check_text(driver) == True:
                     text = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/table[1]/tbody/tr[7]/td/fieldset/span/a'))).text
+                    time.sleep(1)
+                    print(text)
                     return text
                 break
         else:
