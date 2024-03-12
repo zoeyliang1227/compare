@@ -8,5 +8,6 @@
 
 
 ## Run
-python compare.py
-pyinstaller -F ./compare.py
+python PdfToWord.py
+python main.py
+

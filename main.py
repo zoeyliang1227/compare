@@ -5,6 +5,7 @@ import yaml
 import testlink
 
 from openpyxl import load_workbook
+from openpyxl.styles import Font, Border, Side
 from datetime import datetime
 from docx import Document
 
@@ -17,11 +18,15 @@ dict2={}
 WordToExcel = config['WordToExcel']
 Excel = config['Excel']
 testlink_list = []
-
-wb1 = load_workbook(Excel[0], read_only = False)
-wb2 = load_workbook(Excel[1], read_only = False)
+not_found = []
+end_of_excel = 'mapping.xlsx' 
 
 timeout = 20
+
+border = Border(left=Side(border_style='thin',color='000000'),
+right=Side(border_style='thin',color='000000'),
+top=Side(border_style='thin',color='000000'),
+bottom=Side(border_style='thin',color='000000'))
 
 def main():
     start = time.time()
@@ -29,16 +34,27 @@ def main():
     # merge()
     
     get_name()
-    
-    # print(testlink_dict)
-    wb1_count=[]
+
+    # print(testlink_list)
+    dict1['Testlink']=[]
     for Document_ID in range(len(testlink_list)):
         text = testlink.find_from_testlink(testlink_list[Document_ID])
+        dict1['Testlink'].append(text)
 
-    sheet = wb1.active
-    sheet['A1'] = 'Hello, World!'
-
-    wb1.save('Done.xlsx')
+    # print(dict1)
+    df = pd.DataFrame(dict1)
+    df.to_excel(end_of_excel, index=False)
+    
+    mapping = load_workbook(end_of_excel, read_only = False)
+    work3 = mapping[mapping.sheetnames[0]]
+    string_list = [str(element) for element in sorted(not_found)]
+    result_string = ','.join(string_list)
+    work3.cell(row=1, column=work3.max_column+1, value = 'Not_found').border  = border
+    work3.cell(row=1, column=work3.max_column, value = 'Not_found').font  = Font(bold=True)
+    work3.cell(row=2, column=work3.max_column, value = len(result_string)).font = Font(bold=True, color="e06666", size=15)
+    work3.cell(row=2, column=work3.max_column+1, value = result_string)
+    mapping.close()
+    mapping.save(end_of_excel)
         
     end = time.time()
     print('Time elapsed: ' + str(start-end) + ' seconds')
@@ -100,16 +116,14 @@ def make_dict(work1, work2):
     # print(dict2)
     
 def get_name():
-    # wb1 = load_workbook(Excel[0], read_only = False)
-    # wb2 = load_workbook(Excel[1], read_only = False)
+    wb1 = load_workbook(Excel[0], read_only = False)
+    wb2 = load_workbook(Excel[1], read_only = False)
     
     for xlsx in range(2):      
         if xlsx == 0:
             get_excel =  wb1
-            wb_excel = Excel[0]
         else:
             get_excel =  wb2
-            wb_excel = Excel[1]
             
         for sheet in range(len(get_excel.sheetnames)):
             work1 = wb1[wb1.sheetnames[sheet]]
@@ -123,11 +137,13 @@ def get_name():
             for i in range(1, work1.max_row):
                 for b, description in enumerate(dict2.get(key)):
                     if  description is not None:
-                        a = re.search(rf'{dict1[key][i-1][:23]}', description)
-                        if a != None:
+                        if re.search(rf'{dict1[key][i-1][:23]}', description):
                             print(f'查看 {Excel[1]} 中 第 {b+2} 列有相似的 {dict1[key][i-1]}') #第一個excel 從1開始，第二個excel從0開始，整體少2，故+2    
                             # print(work2.cell(b+2, k).value)
                             testlink_list.append(work2.cell(b+2, k).value)
+                if len(testlink_list) != i:
+                    testlink_list.append('')
+                    not_found.append(work1.cell(i+1 , k).row)
         k+=1
 
 if __name__ == "__main__":

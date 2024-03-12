@@ -8,5 +8,6 @@ openpyxl = "*"
 pdfplumber = "*"
 tabula-py = "*"
 jpype1 = "*"
+selenium = "*"
 
 [dev-packages]
