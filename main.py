@@ -48,9 +48,14 @@ def main():
     start = time.time()
     # word_to_excel()
     # merge()
-    
     get_name()
+    get_from_testlink()
+    mapping()
+    
+    end = time.time()
+    print('Time elapsed: ' + str(start-end) + ' seconds')
 
+def get_from_testlink():
     # print(testlink_list)
     dict1['Testlink']=[]
     for Document_ID in range(len(testlink_list)):
@@ -60,7 +65,8 @@ def main():
     # print(dict1)
     df = pd.DataFrame(dict1)
     df.to_excel(end_of_excel, index=False)
-    
+
+def mapping():
     mapping = load_workbook(end_of_excel, read_only = False)
     work3 = mapping[mapping.sheetnames[0]]
     string_list = [str(element) for element in sorted(not_found)]
@@ -71,9 +77,6 @@ def main():
     work3.cell(row=2, column=work3.max_column+1, value = result_string)
     mapping.close()
     mapping.save(end_of_excel)
-        
-    end = time.time()
-    print('Time elapsed: ' + str(start-end) + ' seconds')
     
 def word_to_excel():
     for e in range(2):  
