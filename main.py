@@ -2,6 +2,7 @@ import pandas as pd
 import re
 import time
 import yaml
+import logging
 import testlink
 
 from openpyxl import load_workbook
@@ -11,6 +12,21 @@ from docx import Document
 
 config = yaml.load(open('Testlink_config.yml'), Loader=yaml.Loader)
 time_string = datetime.now().strftime('%Y-%m-%d')
+dev_logger: logging.Logger = logging.getLogger(name='dev')
+dev_logger.setLevel(logging.DEBUG)
+
+formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y%m%d %H:%M:%S')
+
+# print on console
+handler: logging.StreamHandler = logging.StreamHandler()    #StreamHandler 用來控制輸出終端機的相關設定
+handler.setFormatter(formatter)
+dev_logger.addHandler(handler)
+
+#save on log
+file_handler = logging.StreamHandler(open(f'{time_string}.log', 'w'))
+file_handler.setLevel(logging.WARNING)
+file_handler.setFormatter(formatter)
+dev_logger.addHandler(file_handler)
 
 dict1={}
 dict2={}

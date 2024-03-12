@@ -40,16 +40,6 @@ def get_driver():
 
     return driver
 
-def login(driver):
-    print('Waiting for login...')
-    WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.NAME, 'tl_login'))).send_keys(config['username']) 
-    WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.NAME , 'tl_password'))).send_keys(config['password']) 
-    WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.NAME, 'login_submit'))).click() 
-    print('Waiting for the website to load...')
-    # cookie2 = driver.get_cookies() #取得登入後cookie
-    # with open('cookies.yml', 'w', encoding='utf-8') as f:
-    #     yaml.dump(cookie2, stream=f, allow_unicode=True)
-
 def find_from_testlink(Document_ID):
     driver = get_driver()
     login(driver)
@@ -81,12 +71,21 @@ def find_from_testlink(Document_ID):
                 driver.switch_to.frame('workframe')
                 if check_text(driver) == True:
                     text = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/table[1]/tbody/tr[7]/td/fieldset/span/a'))).text
-                    time.sleep(1)
-                    print(text)
+                    time.sleep(2)
                     return text
                 break
         else:
             continue
+        
+def login(driver):
+    print('Waiting for login...')
+    WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.NAME, 'tl_login'))).send_keys(config['username']) 
+    WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.NAME , 'tl_password'))).send_keys(config['password']) 
+    WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.NAME, 'login_submit'))).click() 
+    print('Waiting for the website to load...')
+    # cookie2 = driver.get_cookies() #取得登入後cookie
+    # with open('cookies.yml', 'w', encoding='utf-8') as f:
+    #     yaml.dump(cookie2, stream=f, allow_unicode=True)
     
 def check_click(driver, x):
     try:
