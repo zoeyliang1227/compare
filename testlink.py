@@ -65,14 +65,14 @@ def find_from_testlink(Document_ID):
             ID = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, f'ext-gen{x}')))
             ActionChains(driver).double_click(ID).perform()
             x+=2
-            # print((Document_ID.strip()), ID.text)
+            # print((Document_ID.strip()) , ID.text)
             if (Document_ID.strip()) in ID.text:
+                time.sleep(2)
                 driver.switch_to.parent_frame()
                 driver.switch_to.frame('workframe')
                 if check_text(driver) == True:
                     text = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/table[1]/tbody/tr[7]/td/fieldset/span/a'))).text
-                    time.sleep(2)
-                    return text
+                    return text                  
                 break
         else:
             continue

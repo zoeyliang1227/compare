@@ -3,7 +3,9 @@ import re
 import time
 import yaml
 import logging
+import multiprocessing as mp
 import testlink
+import vodafone
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Border, Side
@@ -28,12 +30,12 @@ file_handler.setLevel(logging.WARNING)
 file_handler.setFormatter(formatter)
 dev_logger.addHandler(file_handler)
 
-dict1={}
-dict2={}
+GetRequirementu_data={}
+NameFromePDF_data={}
 
 WordToExcel = config['WordToExcel']
 Excel = config['Excel']
-testlink_list = []
+GetFromPDF_list = []
 not_found = []
 end_of_excel = 'mapping.xlsx' 
 
@@ -48,33 +50,43 @@ def main():
     start = time.time()
     # word_to_excel()
     # merge()
+    # vodafone.find_from_vodafone()
     get_name()
     get_from_testlink()
-    mapping()
+    # mapping()
     
     end = time.time()
     print('Time elapsed: ' + str(start-end) + ' seconds')
 
-def get_from_testlink():
-    # print(testlink_list)
-    dict1['Testlink']=[]
-    for Document_ID in range(len(testlink_list)):
-        text = testlink.find_from_testlink(testlink_list[Document_ID])
-        dict1['Testlink'].append(text)
+def get_from_testlink():        
+    GetRequirementu_data['Testlink']=[]
+    
+    print(GetFromPDF_list)
+    print(len(GetFromPDF_list))
+    
+    for Document_ID in GetFromPDF_list:
+        if Document_ID:
+            text = testlink.find_from_testlink(Document_ID)
+            GetRequirementu_data['Testlink'].append(text)
+        else:
+            GetRequirementu_data['Testlink'].append('')
+    
+    for key, value in GetRequirementu_data.items():
+        print(key, len([item for item in value if item]))
 
-    # print(dict1)
-    df = pd.DataFrame(dict1)
-    df.to_excel(end_of_excel, index=False)
+    # print(GetRequirementu_data)
+    Testlink_data = pd.DataFrame(GetRequirementu_data)
+    Testlink_data.to_excel(end_of_excel, index=False)
 
 def mapping():
     mapping = load_workbook(end_of_excel, read_only = False)
-    work3 = mapping[mapping.sheetnames[0]]
+    mapping_sheet = mapping[mapping.sheetnames[0]]
     string_list = [str(element) for element in sorted(not_found)]
     result_string = ','.join(string_list)
-    work3.cell(row=1, column=work3.max_column+1, value = 'Not_found').border  = border
-    work3.cell(row=1, column=work3.max_column, value = 'Not_found').font  = Font(bold=True)
-    work3.cell(row=2, column=work3.max_column, value = len(result_string)).font = Font(bold=True, color="e06666", size=15)
-    work3.cell(row=2, column=work3.max_column+1, value = result_string)
+    mapping_sheet.cell(row=1, column=mapping_sheet.max_column+1, value = 'Not_found').border  = border
+    mapping_sheet.cell(row=1, column=mapping_sheet.max_column, value = 'Not_found').font  = Font(bold=True)
+    mapping_sheet.cell(row=2, column=mapping_sheet.max_column, value = len(result_string)).font = Font(bold=True, color="e06666", size=15)
+    mapping_sheet.cell(row=2, column=mapping_sheet.max_column+1, value = result_string)
     mapping.close()
     mapping.save(end_of_excel)
     
@@ -116,23 +128,6 @@ def merge():
     merged_df = pd.concat([df_a, df_b], ignore_index=True)
     sheet = WordToExcel[0].replace('.xlsx','')[-8:-3]+WordToExcel[1].replace('.xlsx','')[-3:]
     merged_df.to_excel('merged.xlsx', sheet_name=sheet,index=False)
-
-def make_dict(work1, work2):
-    for r in range(1, work1.max_column+1):
-        key = work1.cell(1, r).value
-        dict1[key] = []
-        for c in range(2, work1.max_row+1):
-            value = work1.cell(c, r).value
-            dict1[key].append(value)
-    # print(dict1)
-    
-    for r in range(1, work2.max_column+1):
-        key = work2.cell(1, r).value
-        dict2[key] = []
-        for c in range(2, work2.max_row+1):
-            value = work2.cell(c, r).value
-            dict2[key].append(value)
-    # print(dict2)
     
 def get_name():
     wb1 = load_workbook(Excel[0], read_only = False)
@@ -151,19 +146,54 @@ def get_name():
         make_dict(work1, work2)
     
     k=0
-    for key in dict1:
+    z=0
+    for key in GetRequirementu_data:
         if key == 'Description':
             for i in range(1, work1.max_row):
-                for b, description in enumerate(dict2.get(key)):
+                count = 0
+                for b, description in enumerate(NameFromePDF_data.get(key)):
                     if  description is not None:
-                        if re.search(rf'{dict1[key][i-1][:23]}', description):
-                            print(f'查看 {Excel[1]} 中 第 {b+2} 列有相似的 {dict1[key][i-1]}') #第一個excel 從1開始，第二個excel從0開始，整體少2，故+2    
+                        if re.search(rf'{GetRequirementu_data[key][i-1][:23]}', description):
+                            print(f'查看 {Excel[1]} 中 第 {b+2} 列有相似的 {GetRequirementu_data[key][i-1]}') #第一個excel 從1開始，第二個excel從0開始，整體少2，故+2   
+                            GetFromPDF_list.append(work2.cell(b+2, k).value)
                             # print(work2.cell(b+2, k).value)
-                            testlink_list.append(work2.cell(b+2, k).value)
-                if len(testlink_list) != i:
-                    testlink_list.append('')
+                            
+                            count+=1
+                            # print(count)
+                            # 若找到超過兩個以上
+                            if count != 1:
+                                for q in range(1, count):
+                                    GetRequirementu_data[list(GetRequirementu_data.keys())[0]].append('')
+                                    GetRequirementu_data[list(GetRequirementu_data.keys())[1]].append('')
+                                    GetRequirementu_data[list(GetRequirementu_data.keys())[2]].append('')
+                                    z-=1
+                                
+                            z+=1
+                
+                # print(i, z, GetFromPDF_list)
+                if i != z:
+                    GetFromPDF_list.append('')
                     not_found.append(work1.cell(i+1 , k).row)
+                    z+=1
         k+=1
+        
+
+def make_dict(work1, work2):
+    for r in range(1, work1.max_column+1):
+        key = work1.cell(1, r).value
+        GetRequirementu_data[key] = []
+        for c in range(2, work1.max_row+1):
+            value = work1.cell(c, r).value
+            GetRequirementu_data[key].append(value)
+    # print(GetRequirementu_data)
+    
+    for r in range(1, work2.max_column+1):
+        key = work2.cell(1, r).value
+        NameFromePDF_data[key] = []
+        for c in range(2, work2.max_row+1):
+            value = work2.cell(c, r).value
+            NameFromePDF_data[key].append(value)
+    # print(NameFromePDF_data)
 
 if __name__ == "__main__":
     main()
