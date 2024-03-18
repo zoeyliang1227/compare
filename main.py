@@ -3,12 +3,11 @@ import re
 import time
 import yaml
 import logging
-import multiprocessing as mp
 import testlink
 import vodafone
 
 from openpyxl import load_workbook
-from openpyxl.styles import Font, Border, Side
+from openpyxl.styles import Font, Border, Side, Alignment
 from datetime import datetime
 from docx import Document
 
@@ -30,14 +29,17 @@ file_handler.setLevel(logging.WARNING)
 file_handler.setFormatter(formatter)
 dev_logger.addHandler(file_handler)
 
-GetRequirementu_data={}
+GetRequirement_data={}
 NameFromePDF_data={}
 
 WordToExcel = config['WordToExcel']
 Excel = config['Excel']
-GetFromPDF_list = []
+GetRequirement_data_key = []
+GetRequirement_data_value = []
+GetRequirement_data_name = []
+NewGetRequirement=[]
 not_found = []
-end_of_excel = 'mapping.xlsx' 
+end_of_excel = f'{time_string}_mapping_{Excel[0]}'
 
 timeout = 20
 
@@ -59,23 +61,16 @@ def main():
     print('Time elapsed: ' + str(start-end) + ' seconds')
 
 def get_from_testlink():        
-    GetRequirementu_data['Testlink']=[]
+    GetRequirement_data['Testlink']=[]
     
-    print(GetFromPDF_list)
-    print(len(GetFromPDF_list))
+    # print(GetRequirement_data['Name'])
+    Document_ID_text = testlink.find_from_testlink(GetRequirement_data['Name'])
+    GetRequirement_data['Testlink'] = Document_ID_text
+            
+    # for key, value in GetRequirement_data.items():
+    #     print(key, len([item for item in value if item]))
     
-    for Document_ID in GetFromPDF_list:
-        if Document_ID:
-            text = testlink.find_from_testlink(Document_ID)
-            GetRequirementu_data['Testlink'].append(text)
-        else:
-            GetRequirementu_data['Testlink'].append('')
-    
-    for key, value in GetRequirementu_data.items():
-        print(key, len([item for item in value if item]))
-
-    # print(GetRequirementu_data)
-    Testlink_data = pd.DataFrame(GetRequirementu_data)
+    Testlink_data = pd.DataFrame(GetRequirement_data)
     Testlink_data.to_excel(end_of_excel, index=False)
 
 def mapping():
@@ -85,8 +80,16 @@ def mapping():
     result_string = ','.join(string_list)
     mapping_sheet.cell(row=1, column=mapping_sheet.max_column+1, value = 'Not_found').border  = border
     mapping_sheet.cell(row=1, column=mapping_sheet.max_column, value = 'Not_found').font  = Font(bold=True)
-    mapping_sheet.cell(row=2, column=mapping_sheet.max_column, value = len(result_string)).font = Font(bold=True, color="e06666", size=15)
+    mapping_sheet.cell(row=2, column=mapping_sheet.max_column, value = len(string_list)).font = Font(bold=True, color="e06666", size=15)
     mapping_sheet.cell(row=2, column=mapping_sheet.max_column+1, value = result_string)
+    
+    #將excel 所有儲存格 對齊 水平對齊 填滿
+    for ws in mapping.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                align = Alignment(horizontal='fill')
+                cell.alignment = align
+                
     mapping.close()
     mapping.save(end_of_excel)
     
@@ -146,46 +149,49 @@ def get_name():
         make_dict(work1, work2)
     
     k=0
-    z=0
-    for key in GetRequirementu_data:
+    count_list=[]
+    GetRequirement_data['Name']=[]    
+    for key in GetRequirement_data:
         if key == 'Description':
             for i in range(1, work1.max_row):
-                count = 0
-                for b, description in enumerate(NameFromePDF_data.get(key)):
-                    if  description is not None:
-                        if re.search(rf'{GetRequirementu_data[key][i-1][:23]}', description):
-                            print(f'查看 {Excel[1]} 中 第 {b+2} 列有相似的 {GetRequirementu_data[key][i-1]}') #第一個excel 從1開始，第二個excel從0開始，整體少2，故+2   
-                            GetFromPDF_list.append(work2.cell(b+2, k).value)
-                            # print(work2.cell(b+2, k).value)
-                            
-                            count+=1
-                            # print(count)
-                            # 若找到超過兩個以上
-                            if count != 1:
-                                for q in range(1, count):
-                                    GetRequirementu_data[list(GetRequirementu_data.keys())[0]].append('')
-                                    GetRequirementu_data[list(GetRequirementu_data.keys())[1]].append('')
-                                    GetRequirementu_data[list(GetRequirementu_data.keys())[2]].append('')
-                                    z-=1
-                                
-                            z+=1
-                
-                # print(i, z, GetFromPDF_list)
-                if i != z:
-                    GetFromPDF_list.append('')
+                if len(count_list) == 0:
+                    GetRequirement_data['Name'].append('')
                     not_found.append(work1.cell(i+1 , k).row)
-                    z+=1
+                    # print(f'第 {i} 列，加入空白，list數{len(GetRequirement_data['Name'])}')
+                    
+                count_list.clear()
+                for b, description in enumerate(NameFromePDF_data.get(key)):
+                    if is_blank_or_none(description) == False:
+                        # print(work1.cell(i+1 , k).row)
+                        test_str = re.sub(r'[^a-zA-Z0-9]', ' ', GetRequirement_data[key][i-1][:len(GetRequirement_data[key][i-1])//4])
+                        if re.search(test_str, description):
+                            print(f'查看 {Excel[1]} 中 第 {b+2} 列有相似的 {GetRequirement_data[key][i-1]}') #第一個excel 從1開始，第二個excel從0開始，整體少2，故+2   
+                            # print(work2.cell(b+2, k).value)  
+                            if 'KIP-REQ' in work2.cell(b+2, k).value:
+                                GetRequirement_data['Name'].append(work2.cell(b+2, k).value)
+
+                                count_list.append(b+2)
+                                # print(len(count_list))
+                                if len(count_list) != 1:
+                                    GetRequirement_data[list(GetRequirement_data.keys())[0]].insert(i, '')     #Req Parent
+                                    GetRequirement_data[list(GetRequirement_data.keys())[1]].insert(i, '')      #Summary
+                                    GetRequirement_data[list(GetRequirement_data.keys())[2]].insert(i, '')      #Description
+
+                                # print(f'第 {i} 列，加入 {len(count_list)}，list數{len(GetRequirement_data['Name'])}')
+
         k+=1
         
+def is_blank_or_none(s):
+    return s is None or len(s.strip()) == 0
 
 def make_dict(work1, work2):
     for r in range(1, work1.max_column+1):
         key = work1.cell(1, r).value
-        GetRequirementu_data[key] = []
+        GetRequirement_data[key] = []
         for c in range(2, work1.max_row+1):
             value = work1.cell(c, r).value
-            GetRequirementu_data[key].append(value)
-    # print(GetRequirementu_data)
+            GetRequirement_data[key].append(value)
+    # print(GetRequirement_data)
     
     for r in range(1, work2.max_column+1):
         key = work2.cell(1, r).value

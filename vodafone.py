@@ -56,7 +56,10 @@ def find_from_vodafone():
     login(driver)
     get_name()
     GetDescription_data['Description']=[]
+    # print(Req_parent)
     for req in Req_parent:
+        if req is None:
+            break
         # print(req)
         WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, 'quickSearchInput'))).send_keys(req) 
         WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, 'quickSearchInput'))).send_keys(Keys.ENTER)
